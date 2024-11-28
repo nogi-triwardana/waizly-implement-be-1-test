@@ -1,0 +1,88 @@
+1. SELECT * FROM employees;
+2. SELECT COUNT(*) AS total_managers FROM employees WHERE job_title='Manager';
+3. SELECT name, salary FROM employees WHERE departement IN('Sales', 'Marketing');
+4. SELECT AVG(salary) FROM employees WHERE joined_date >= DATE_SUB(NOW(), INTERVAL 5 YEAR);
+5. SELECT 
+    e.employee_id,
+    e.name,
+    e.job_title,
+    e.department,
+    e.salary,
+    e.joined_date,
+    SUM(s.sales) AS total_sales
+FROM 
+    employees e
+JOIN 
+    sales_data s
+ON 
+    e.employee_id = s.employee_id
+GROUP BY 
+    e.employee_id, e.name, e.job_title, e.department, e.salary, e.joined_date
+ORDER BY 
+    total_sales DESC
+LIMIT 5;
+
+6. WITH department_avg_salary AS (
+    SELECT 
+        departement,
+        AVG(salary) AS avg_salary_per_dept
+    FROM employees
+    GROUP BY departement
+),
+overall_avg_salary AS (
+    SELECT 
+        AVG(salary) AS avg_salary_all_depts
+    FROM employees
+)
+SELECT 
+    e.name,
+    e.salary,
+    d.avg_salary_per_dept AS department_avg_salary
+FROM employees e
+JOIN department_avg_salary d
+    ON e.departement = d.departement
+CROSS JOIN overall_avg_salary o
+WHERE d.avg_salary_per_dept > o.avg_salary_all_depts;
+
+7. SELECT 
+    e.name AS employee_name,
+    SUM(s.sales) AS total_sales,
+    RANK() OVER (ORDER BY SUM(s.sales) DESC) AS ranking
+FROM 
+    employees e
+LEFT JOIN 
+    sales_data s 
+ON 
+    e.employee_id = s.employee_id
+GROUP BY 
+    e.employee_id, e.name
+ORDER BY 
+    ranking;
+
+8. DELIMITER $$
+
+CREATE PROCEDURE GetEmployeesByDepartment(
+    IN input_department VARCHAR(255)
+)
+BEGIN
+    SELECT 
+        e.employee_id,
+        e.name,
+        e.salary,
+        e.job_title,
+        e.departement,
+        SUM(sd.sales) AS total_sales
+    FROM 
+        employees e
+    LEFT JOIN 
+        sales_data sd ON e.employee_id = sd.employee_id
+    WHERE 
+        e.departement = input_department
+    GROUP BY 
+        e.employee_id, e.name, e.salary, e.job_title, e.departement;
+END $$
+
+DELIMITER ;
+
+bila mau eksekusi store procedure nya:
+CALL GetEmployeesByDepartment('Marketing');
